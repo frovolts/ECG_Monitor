@@ -2,11 +2,16 @@
 Real-Time ECG Monitoring Dashboard
 ===================================
 A comprehensive Streamlit-based ECG monitoring application with:
-- Real-time ECG waveform display
+- Real-time ECG waveform display from ESP32 via serial port
 - Heart rate monitoring
 - AI-powered heart condition classification
 - Demo mode using CSV files when no ESP32/COM port available
 - Professional medical UI design
+
+Data Sources:
+- ESP32 Serial Port: Real-time ECG data from ESP32 + AD8232 sensor
+- Demo Mode: Simulated ECG waveforms for testing
+- CSV Data: Pre-recorded ECG data files
 """
 
 import streamlit as st
@@ -20,6 +25,14 @@ from collections import deque
 import plotly.graph_objects as go
 import joblib
 from scipy import signal as scipy_signal
+
+# Serial port support for ESP32
+try:
+    import serial
+    import serial.tools.list_ports
+    SERIAL_AVAILABLE = True
+except ImportError:
+    SERIAL_AVAILABLE = False
 
 # ==========================================
 # PAGE CONFIGURATION
@@ -515,6 +528,111 @@ class ECGDataGenerator:
 
 
 # ==========================================
+# ESP32 SERIAL PORT READER
+# ==========================================
+class ESP32SerialReader:
+    """Read real-time ECG data from ESP32 via serial port."""
+    
+    def __init__(self, port="COM4", baud_rate=115200):
+        self.port = port
+        self.baud_rate = baud_rate
+        self.serial_connection = None
+        self.is_connected = False
+        self.last_value = 2048  # Default baseline value
+        self.buffer = deque(maxlen=100)  # Buffer for incoming data
+    
+    @staticmethod
+    def get_available_ports():
+        """Get list of available serial ports."""
+        if not SERIAL_AVAILABLE:
+            return []
+        try:
+            ports = serial.tools.list_ports.comports()
+            return [port.device for port in ports]
+        except Exception:
+            return []
+    
+    def connect(self):
+        """Establish connection to ESP32."""
+        if not SERIAL_AVAILABLE:
+            return False, "pyserial library not installed"
+        
+        try:
+            if self.serial_connection and self.serial_connection.is_open:
+                self.serial_connection.close()
+            
+            self.serial_connection = serial.Serial(
+                self.port, 
+                self.baud_rate, 
+                timeout=0.1  # Short timeout for non-blocking reads
+            )
+            self.is_connected = True
+            return True, f"Connected to {self.port} at {self.baud_rate} baud"
+        except serial.SerialException as e:
+            self.is_connected = False
+            return False, f"Failed to connect: {str(e)}"
+        except Exception as e:
+            self.is_connected = False
+            return False, f"Error: {str(e)}"
+    
+    def disconnect(self):
+        """Close serial connection."""
+        if self.serial_connection and self.serial_connection.is_open:
+            try:
+                self.serial_connection.close()
+            except Exception:
+                pass
+        self.is_connected = False
+    
+    def read_samples(self, num_samples=10):
+        """Read multiple ECG samples from serial port.
+        
+        Returns a list of ECG values read from the ESP32.
+        """
+        samples = []
+        
+        if not self.is_connected or not self.serial_connection:
+            return samples
+        
+        try:
+            # Read available data from serial buffer
+            for _ in range(num_samples * 2):  # Try to read more to catch up
+                if self.serial_connection.in_waiting > 0:
+                    raw = self.serial_connection.readline()
+                    line_raw = raw.decode(errors="ignore").strip()
+                    
+                    if not line_raw:
+                        continue
+                    
+                    # Parse ECG value - handle both integer and float formats
+                    try:
+                        ecg_value = int(float(line_raw))
+                        # Validate the value is within expected range (0-4095 for ESP32 ADC)
+                        if 0 <= ecg_value <= 4095:
+                            samples.append(ecg_value)
+                            self.last_value = ecg_value
+                    except ValueError:
+                        continue
+                        
+                if len(samples) >= num_samples:
+                    break
+                    
+        except serial.SerialException:
+            self.is_connected = False
+        except Exception:
+            pass
+        
+        return samples
+    
+    def get_next_sample(self):
+        """Get a single ECG sample (for compatibility with other data sources)."""
+        samples = self.read_samples(1)
+        if samples:
+            return samples[0]
+        return self.last_value  # Return last known value if no new data
+
+
+# ==========================================
 # CSV DATA LOADER
 # ==========================================
 # Default CSV file pattern - can be changed if needed
@@ -682,6 +800,10 @@ def main():
         st.session_state.mode = 'demo'
     if 'running' not in st.session_state:
         st.session_state.running = True
+    if 'esp32_reader' not in st.session_state:
+        st.session_state.esp32_reader = None
+    if 'esp32_connected' not in st.session_state:
+        st.session_state.esp32_connected = False
     
     # Header
     st.markdown("""
@@ -695,19 +817,86 @@ def main():
     with st.sidebar:
         st.markdown("### ⚙️ Configuration")
         
+        # Build data source options based on availability
+        data_sources = ["Demo Mode (Simulated)", "CSV Data Files"]
+        if SERIAL_AVAILABLE:
+            data_sources.insert(0, "ESP32 Serial Port (Live)")
+        
         # Data source selection
         data_source = st.selectbox(
             "📡 Data Source",
-            ["Demo Mode (Simulated)", "CSV Data Files"],
+            data_sources,
             index=0
         )
         
-        if data_source == "Demo Mode (Simulated)":
+        if data_source == "ESP32 Serial Port (Live)":
+            st.session_state.mode = 'esp32'
+            
+            # Get available ports
+            available_ports = ESP32SerialReader.get_available_ports()
+            
+            if available_ports:
+                selected_port = st.selectbox(
+                    "🔌 Serial Port",
+                    available_ports,
+                    index=0
+                )
+            else:
+                selected_port = st.text_input(
+                    "🔌 Serial Port (manual entry)",
+                    value="COM4",
+                    help="Enter the COM port (Windows) or /dev/ttyUSB0 (Linux)"
+                )
+            
+            baud_rate = st.selectbox(
+                "📶 Baud Rate",
+                [9600, 19200, 38400, 57600, 115200, 230400],
+                index=4  # Default to 115200
+            )
+            
+            # Connection controls
+            col_conn1, col_conn2 = st.columns(2)
+            with col_conn1:
+                if st.button("🔗 Connect", use_container_width=True):
+                    # Create or update ESP32 reader
+                    st.session_state.esp32_reader = ESP32SerialReader(
+                        port=selected_port,
+                        baud_rate=baud_rate
+                    )
+                    success, message = st.session_state.esp32_reader.connect()
+                    st.session_state.esp32_connected = success
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+            
+            with col_conn2:
+                if st.button("🔌 Disconnect", use_container_width=True):
+                    if st.session_state.esp32_reader:
+                        st.session_state.esp32_reader.disconnect()
+                    st.session_state.esp32_connected = False
+                    st.info("Disconnected from ESP32")
+            
+            # Show connection status
+            if st.session_state.esp32_connected:
+                st.success("✅ Connected to ESP32")
+            else:
+                st.warning("⚠️ Not connected. Click 'Connect' to start receiving data.")
+                
+        elif data_source == "Demo Mode (Simulated)":
             st.session_state.mode = 'demo'
+            # Disconnect ESP32 if switching away from it
+            if st.session_state.esp32_reader:
+                st.session_state.esp32_reader.disconnect()
+                st.session_state.esp32_connected = False
             heart_rate = st.slider("💓 Simulated Heart Rate (BPM)", 40, 150, 72)
             st.session_state.generator.heart_rate = heart_rate
         else:
             st.session_state.mode = 'csv'
+            # Disconnect ESP32 if switching away from it
+            if st.session_state.esp32_reader:
+                st.session_state.esp32_reader.disconnect()
+                st.session_state.esp32_connected = False
             if st.session_state.csv_data is not None:
                 st.success(f"✅ Loaded {len(st.session_state.csv_data)} samples from CSV files")
             else:
@@ -744,8 +933,15 @@ def main():
         
         # Info section
         st.markdown("### ℹ️ System Info")
-        status_class = "status-demo" if st.session_state.mode == 'demo' else "status-live"
-        status_text = "DEMO MODE" if st.session_state.mode == 'demo' else "CSV DATA"
+        if st.session_state.mode == 'esp32' and st.session_state.esp32_connected:
+            status_class = "status-live"
+            status_text = "LIVE ESP32"
+        elif st.session_state.mode == 'demo':
+            status_class = "status-demo"
+            status_text = "DEMO MODE"
+        else:
+            status_class = "status-demo"
+            status_text = "CSV DATA"
         st.markdown(f'<span class="status-badge {status_class}">{status_text}</span>', unsafe_allow_html=True)
         
         st.markdown("""
@@ -767,20 +963,31 @@ def main():
     # Update data
     if st.session_state.running:
         # Generate/load new data points
-        for _ in range(10):  # Add 10 samples per update
-            if st.session_state.mode == 'demo':
-                new_val = st.session_state.generator.get_next_sample()
-            elif st.session_state.mode == 'csv' and st.session_state.csv_data is not None:
-                if st.session_state.csv_index < len(st.session_state.csv_data):
-                    new_val = st.session_state.csv_data.iloc[st.session_state.csv_index]['ecg_value']
-                    st.session_state.csv_index += 1
+        if st.session_state.mode == 'esp32' and st.session_state.esp32_connected:
+            # Read samples from ESP32
+            samples = st.session_state.esp32_reader.read_samples(10)
+            for new_val in samples:
+                st.session_state.data_buffer.append(new_val)
+            # If no samples read, use last known value to maintain display
+            if not samples:
+                for _ in range(2):
+                    new_val = st.session_state.esp32_reader.last_value
+                    st.session_state.data_buffer.append(new_val)
+        else:
+            for _ in range(10):  # Add 10 samples per update
+                if st.session_state.mode == 'demo':
+                    new_val = st.session_state.generator.get_next_sample()
+                elif st.session_state.mode == 'csv' and st.session_state.csv_data is not None:
+                    if st.session_state.csv_index < len(st.session_state.csv_data):
+                        new_val = st.session_state.csv_data.iloc[st.session_state.csv_index]['ecg_value']
+                        st.session_state.csv_index += 1
+                    else:
+                        st.session_state.csv_index = 0  # Loop back
+                        new_val = st.session_state.csv_data.iloc[0]['ecg_value']
                 else:
-                    st.session_state.csv_index = 0  # Loop back
-                    new_val = st.session_state.csv_data.iloc[0]['ecg_value']
-            else:
-                new_val = st.session_state.generator.get_next_sample()
-            
-            st.session_state.data_buffer.append(new_val)
+                    new_val = st.session_state.generator.get_next_sample()
+                
+                st.session_state.data_buffer.append(new_val)
         
         # Process signal with heart rate hint
         heart_rate_hint = st.session_state.generator.heart_rate if st.session_state.mode == 'demo' else 72
