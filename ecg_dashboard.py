@@ -231,8 +231,12 @@ class DiagnosticEngine:
             if os.path.exists(model_path):
                 self.model = joblib.load(model_path)
                 return True
+            else:
+                # Model file not found - this is expected in some setups
+                # System will use rule-based diagnostics as fallback
+                pass
         except Exception as e:
-            st.sidebar.warning(f"⚠️ Model loading issue: {str(e)}")
+            st.sidebar.warning(f"⚠️ ML model could not be loaded: {str(e)}. Using rule-based diagnostics.")
         return False
     
     def analyze(self, peaks_buffer, avg_qrs_width, bpm):
@@ -513,9 +517,35 @@ class ECGDataGenerator:
 # ==========================================
 # CSV DATA LOADER
 # ==========================================
-def load_csv_data():
-    """Load ECG data from CSV files."""
-    csv_files = sorted(glob.glob("combined_*.csv"))
+# Default CSV file pattern - can be changed if needed
+CSV_FILE_PATTERN = "combined_*.csv"
+
+def load_csv_data(pattern=None):
+    """Load ECG data from CSV files.
+    
+    Args:
+        pattern: Optional glob pattern for CSV files. Defaults to combined_*.csv.
+                 Falls back to *.csv if no files match the primary pattern.
+    """
+    if pattern is None:
+        pattern = CSV_FILE_PATTERN
+    
+    csv_files = sorted(glob.glob(pattern))
+    
+    # Fallback to any CSV file if primary pattern doesn't match
+    if not csv_files:
+        csv_files = sorted(glob.glob("*.csv"))
+        # Filter out any non-ECG files by checking for required columns
+        valid_files = []
+        for f in csv_files:
+            try:
+                df = pd.read_csv(f, nrows=1)
+                if 'ecg_value' in df.columns or 'timestamp_ms' in df.columns:
+                    valid_files.append(f)
+            except Exception:
+                pass
+        csv_files = valid_files
+    
     if not csv_files:
         return None
     
@@ -523,7 +553,9 @@ def load_csv_data():
     for csv_file in csv_files:
         try:
             df = pd.read_csv(csv_file)
-            all_data.append(df)
+            # Validate CSV has expected columns
+            if 'ecg_value' in df.columns:
+                all_data.append(df)
         except Exception as e:
             st.warning(f"Could not load {csv_file}: {e}")
     
