@@ -62,11 +62,30 @@ The Streamlit dashboard can run completely offline:
 streamlit run ecg_dashboard.py --server.headless true
 ```
 
+### Real-time ECG from ESP32
+
+For a simple, lightweight real-time ECG visualization directly from an ESP32:
+
+```bash
+python realtime_ecg.py
+```
+
+**Configuration:**
+1. Edit `realtime_ecg.py` and set `SERIAL_PORT` to match your ESP32 port:
+   - Windows: `"COM4"` (or similar)
+   - Linux: `"/dev/ttyUSB0"` (or similar)
+   - macOS: `"/dev/cu.usbserial-XXXX"` (or similar)
+
+2. The ESP32 should send raw ADC values (0-4095) as plain text, one value per line.
+
+3. Press `Ctrl+C` to stop the visualization.
+
 ## 📁 Project Structure
 
 ```
 Low-cost-ECG-Monitoring/
 ├── ecg_dashboard.py      # Main Streamlit dashboard application
+├── realtime_ecg.py       # Simple real-time ECG from ESP32 (matplotlib)
 ├── requirements.txt      # Python dependencies
 ├── ecg_brain_advanced.pkl # Trained ML model for diagnosis
 ├── train_ai.py          # Script to train the AI model
