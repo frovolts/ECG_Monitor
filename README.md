@@ -6,6 +6,10 @@ A comprehensive real-time ECG monitoring dashboard with AI-powered heart conditi
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.20+-red.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
+> [!TIP]
+> **Don't just look at the code—see it in action!**  
+> Check out the [**Live Interactive Demo**](https://ecgmonitor.streamlit.app/) to test the AI diagnostics with simulated data.
+
 ## 🌟 Features
 
 - **Real-time ECG Visualization**: Live ECG waveform display with smooth animations
@@ -24,7 +28,14 @@ A comprehensive real-time ECG monitoring dashboard with AI-powered heart conditi
 - **ESP32 Support**: Connect to ESP32-based ECG hardware via serial port
 - **Professional Medical UI**: Clean, dark-themed medical dashboard
 
+> [!TIP]
+> **Don't just look at the code—see it in action!**  
+> Check out the [**Live Interactive Demo**](https://ecgmonitor.streamlit.app/) to test the AI diagnostics with simulated data
+
 ## 📸 Screenshots
+<img width="1907" height="748" alt="image" src="https://github.com/user-attachments/assets/a36b266d-331c-4891-bc94-5ab8ddb256e0" />
+<img width="1463" height="653" alt="image" src="https://github.com/user-attachments/assets/e98805dd-87c4-48f0-9888-69e2f112e165" />
+<img width="1919" height="896" alt="image" src="https://github.com/user-attachments/assets/7073b7b9-a830-416b-ab12-cef8458f775f" />
 
 The dashboard features:
 - Real-time ECG waveform with green trace on dark background
