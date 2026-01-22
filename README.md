@@ -198,4 +198,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Support
 
-If you have any questions or issues, please open an issue on GitHub.
+If you have any questions or issues, please email us at ```frovolts@gmail.com``` or knock at our [facebook page](https://www.facebook.com/people/Team-Frozen-Voltage/61576005332570/#)
