@@ -1,4 +1,4 @@
-# 🫀 Low-Cost ECG Monitoring System
+# 🫀ECG Monitoring System 
 
 A comprehensive real-time ECG monitoring dashboard with AI-powered heart condition classification.
 
