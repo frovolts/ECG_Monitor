@@ -10,7 +10,6 @@ A comprehensive real-time ECG monitoring dashboard with AI-powered heart conditi
 > **Don't just look at the code—see it in action!**  
 > Check out the [**Live Interactive Demo**](https://ecgmonitor.streamlit.app/) to test the AI diagnostics with simulated data.
 
-<a href="https://ecgmonitor.streamlit.app" target="_blank" rel="noopener noreferrer">🚀 Open Live Demo</a>
 ## 🌟 Features
 
 - **Real-time ECG Visualization**: Live ECG waveform display with smooth animations
