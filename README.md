@@ -44,6 +44,7 @@ The dashboard features:
 - Risk assessment visualization
 - HRV metrics display
 
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -179,6 +180,13 @@ Always consult a qualified healthcare professional for any medical concerns.
 - AD8232 ECG Sensor Module
 - ECG electrodes (3-lead)
 - Jumper wires
+
+## 📸 Setup Images 
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0a73b7af-5381-4ae5-a34e-6de11a21b399" width="48%" />
+  <img src="https://github.com/user-attachments/assets/4d5c89db-f939-4c28-8a12-7f41c1398d85" width="48%" />
+</p>
 
 ## 📄 License
 
