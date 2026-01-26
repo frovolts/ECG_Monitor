@@ -197,5 +197,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Support
+<img width="3168" height="1344" alt="Gemini_Generated_Image_9y8anh9y8anh9y8a" src="https://github.com/user-attachments/assets/ce1f94e5-6e90-4efa-b0bd-33120b691a87" />
 
 If you have any questions or issues, please email us at ```frovolts@gmail.com``` or knock at our [facebook page](https://www.facebook.com/people/Team-Frozen-Voltage/61576005332570/#)
+
+
