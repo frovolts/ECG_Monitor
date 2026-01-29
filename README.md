@@ -188,6 +188,11 @@ Always consult a qualified healthcare professional for any medical concerns.
   <img src="https://github.com/user-attachments/assets/4d5c89db-f939-4c28-8a12-7f41c1398d85" width="48%" />
 </p>
 
+## User Manual
+![Screenshot 2026-01-29 220751](https://github.com/user-attachments/assets/ef3f6278-eba5-435a-88c1-68427d2d6d5e)
+![Screenshot 2026-01-29 220838](https://github.com/user-attachments/assets/1e05f511-e39b-4fc1-975d-2ca78df1f85f)
+
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
